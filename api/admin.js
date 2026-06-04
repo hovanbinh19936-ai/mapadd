@@ -40,13 +40,14 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'POST' && action === 'create') {
     const { name, days, plan } = req.body || {};
-    if (!days) return res.status(400).json({ error: 'Thiếu số ngày' });
+    if (!days) return res.status(400).json({ error: 'Thieu so ngay' });
     const key = generateKey();
     const expires_at = new Date(Date.now() + days * 86400000).toISOString();
     const { data, status } = await supabase('POST', 'license_keys', {
       key, name: name || 'Chua dat ten', expires_at,
       plan: plan || 'basic', active: true,
-      created_at: new Date().toISOString(), bound_ip: null, use_count: 0
+      created_at: new Date().toISOString(),
+      bound_ip: null, bound_device: null, use_count: 0
     });
     if (status !== 201) return res.status(500).json({ error: JSON.stringify(data) });
     const record = Array.isArray(data) ? data[0] : data;
@@ -69,6 +70,12 @@ module.exports = async function handler(req, res) {
     const { key } = req.body || {};
     await supabase('PATCH', 'license_keys', { bound_ip: null }, `key=eq.${key}`);
     return res.json({ success: true });
+  }
+
+  if (req.method === 'POST' && action === 'reset-device') {
+    const { key } = req.body || {};
+    await supabase('PATCH', 'license_keys', { bound_device: null, bound_ip: null }, `key=eq.${key}`);
+    return res.json({ success: true, message: 'Da reset thiet bi' });
   }
 
   if (req.method === 'POST' && action === 'extend') {
