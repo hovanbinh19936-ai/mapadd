@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NailFinder — Quản lý Key</title>
+<style>
+  :root{--bg:#0f1117;--sur:#171b26;--sur2:#1e2535;--bdr:#2a3348;--acc:#3b82f6;--grn:#10b981;--red:#f43f5e;--yel:#f59e0b;--txt:#e2e8f0;--mut:#64748b;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding:24px;}
+  h1{font-size:22px;font-weight:800;margin-bottom:24px;color:var(--txt);}
+  h1 span{color:var(--acc);}
+
+  .card{background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:20px;margin-bottom:20px;}
+  .card h2{font-size:14px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;}
+
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:11px;color:var(--mut);margin-bottom:5px;font-weight:600;}
+  .field input,.field select{width:100%;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;color:var(--txt);font-size:14px;outline:none;}
+  .field input:focus{border-color:var(--acc);}
+  .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+  .btn{border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;}
+  .btn-blue{background:var(--acc);color:#fff;}
+  .btn-blue:hover{background:#2563eb;}
+  .btn-red{background:var(--red);color:#fff;font-size:11px;padding:5px 10px;}
+  .btn-yel{background:var(--yel);color:#000;font-size:11px;padding:5px 10px;}
+  .btn-grn{background:var(--grn);color:#fff;font-size:11px;padding:5px 10px;}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;}
+  th{padding:10px 12px;text-align:left;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bdr);}
+  td{padding:10px 12px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);}
+  tr:hover td{background:rgba(59,130,246,.04);}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+  .badge-grn{background:rgba(16,185,129,.15);color:var(--grn);}
+  .badge-red{background:rgba(244,63,94,.15);color:var(--red);}
+  .badge-yel{background:rgba(245,158,11,.15);color:var(--yel);}
+
+  .key-txt{font-family:'Courier New',monospace;font-size:12px;background:var(--sur2);padding:3px 8px;border-radius:5px;cursor:pointer;color:var(--acc);}
+  .key-txt:hover{background:rgba(59,130,246,.15);}
+
+  #result-box{background:var(--sur2);border:1px solid var(--grn);border-radius:10px;padding:14px;margin-top:14px;display:none;}
+  #result-box .new-key{font-family:'Courier New',monospace;font-size:16px;font-weight:700;color:var(--grn);word-break:break-all;cursor:pointer;}
+
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--sur2);border:1px solid var(--bdr);border-radius:9px;padding:10px 16px;font-size:13px;opacity:0;transform:translateY(10px);transition:all .25s;pointer-events:none;}
+  .toast.show{opacity:1;transform:none;}
+
+  /* Config section */
+  .config-bar{background:var(--sur2);border:1px solid var(--bdr);border-radius:10px;padding:14px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+  .config-bar .field{margin:0;flex:1;min-width:200px;}
+</style>
+</head>
+<body>
+<h1>🔑 NailFinder — <span>Quản lý License Key</span></h1>
+
+<!-- Cấu hình server -->
+<div class="config-bar">
+  <div class="field">
+    <label>🌐 Server URL (Vercel URL của bạn)</label>
+    <input id="server-url" placeholder="https://your-app.vercel.app" value="">
+  </div>
+  <div class="field">
+    <label>🔐 Admin Secret</label>
+    <input id="admin-secret" type="password" placeholder="Mật khẩu admin bạn đặt">
+  </div>
+  <button class="btn btn-blue" onclick="saveConfig()">💾 Lưu cấu hình</button>
+</div>
+
+<!-- Tạo key mới -->
+<div class="card">
+  <h2>➕ Tạo Key Mới</h2>
+  <div class="row">
+    <div class="field">
+      <label>Tên người dùng</label>
+      <input id="new-name" placeholder="VD: Khách hàng A">
+    </div>
+    <div class="field">
+      <label>Số ngày sử dụng</label>
+      <select id="new-days">
+        <option value="7">7 ngày (1 tuần)</option>
+        <option value="30" selected>30 ngày (1 tháng)</option>
+        <option value="90">90 ngày (3 tháng)</option>
+        <option value="180">180 ngày (6 tháng)</option>
+        <option value="365">365 ngày (1 năm)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Gói</label>
+      <select id="new-plan">
+        <option value="basic">Basic</option>
+        <option value="pro">Pro</option>
+        <option value="vip">VIP</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn btn-blue" onclick="createKey()">🔑 Tạo Key</button>
+  <div id="result-box">
+    <div style="font-size:12px;color:var(--mut);margin-bottom:6px;">Key mới (click để copy):</div>
+    <div class="new-key" id="new-key-val" onclick="copyText(this.textContent)"></div>
+    <div style="font-size:12px;color:var(--mut);margin-top:6px;" id="new-key-info"></div>
+  </div>
+</div>
+
+<!-- Danh sách key -->
+<div class="card">
+  <h2 style="display:flex;justify-content:space-between;align-items:center;">
+    📋 Danh sách Key
+    <button class="btn btn-blue" onclick="loadKeys()" style="padding:6px 14px;font-size:12px;">🔄 Tải lại</button>
+  </h2>
+  <div id="keys-table">
+    <div style="text-align:center;padding:30px;color:var(--mut);">Nhập cấu hình và nhấn Tải lại</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let SERVER_URL = localStorage.getItem('nf_server') || '';
+let ADMIN_SECRET = localStorage.getItem('nf_admin') || '';
+
+document.getElementById('server-url').value = SERVER_URL;
+
+function saveConfig() {
+  SERVER_URL = document.getElementById('server-url').value.trim().replace(/\/$/, '');
+  ADMIN_SECRET = document.getElementById('admin-secret').value.trim();
+  localStorage.setItem('nf_server', SERVER_URL);
+  localStorage.setItem('nf_admin', ADMIN_SECRET);
+  showToast('✅ Đã lưu cấu hình!');
+  loadKeys();
+}
+
+async function apiCall(action, method, body) {
+  const res = await fetch(`${SERVER_URL}/api/admin?action=${action}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${ADMIN_SECRET}`
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return res.json();
+}
+
+async function createKey() {
+  if (!SERVER_URL || !ADMIN_SECRET) { showToast('❗ Nhập cấu hình trước!'); return; }
+  const name = document.getElementById('new-name').value.trim() || 'Chưa đặt tên';
+  const days = parseInt(document.getElementById('new-days').value);
+  const plan = document.getElementById('new-plan').value;
+
+  const data = await apiCall('create', 'POST', { name, days, plan });
+  if (data.success) {
+    document.getElementById('result-box').style.display = 'block';
+    document.getElementById('new-key-val').textContent = data.key;
+    document.getElementById('new-key-info').textContent =
+      `Hết hạn: ${new Date(data.expires_at).toLocaleDateString('vi-VN')} (${days} ngày)`;
+    showToast('✅ Đã tạo key!');
+    loadKeys();
+  } else {
+    showToast('❌ ' + data.error);
+  }
+}
+
+async function loadKeys() {
+  if (!SERVER_URL || !ADMIN_SECRET) return;
+  const data = await apiCall('list', 'GET');
+  if (!data.keys) { showToast('❌ ' + (data.error||'Lỗi')); return; }
+
+  const now = new Date();
+  const rows = data.keys.map(k => {
+    const exp = new Date(k.expires_at);
+    const expired = exp < now;
+    const daysLeft = Math.ceil((exp - now) / 86400000);
+    const status = !k.active ? `<span class="badge badge-red">Bị khoá</span>`
+                 : expired   ? `<span class="badge badge-red">Hết hạn</span>`
+                 : daysLeft <= 7 ? `<span class="badge badge-yel">${daysLeft} ngày</span>`
+                 : `<span class="badge badge-grn">${daysLeft} ngày</span>`;
+    return `<tr>
+      <td><span class="key-txt" onclick="copyText('${k.key}')">${k.key}</span></td>
+      <td>${k.name||'—'}</td>
+      <td><span class="badge" style="background:rgba(59,130,246,.15);color:#60a5fa">${k.plan||'basic'}</span></td>
+      <td>${exp.toLocaleDateString('vi-VN')}</td>
+      <td>${status}</td>
+      <td style="font-size:11px;color:var(--mut)">${k.bound_ip||'Chưa dùng'}</td>
+      <td>${k.use_count||0}</td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap">
+        <button class="btn btn-yel" onclick="resetIP('${k.key}')">Reset IP</button>
+        <button class="btn btn-grn" onclick="extendKey('${k.key}')">+30 ngày</button>
+        ${k.active ? `<button class="btn btn-red" onclick="deactivate('${k.key}')">Khoá</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('keys-table').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Key</th><th>Tên</th><th>Gói</th><th>Hết hạn</th>
+        <th>Trạng thái</th><th>IP</th><th>Lượt dùng</th><th>Thao tác</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+async function deactivate(key) {
+  if (!confirm(`Khoá key ${key}?`)) return;
+  const data = await apiCall('deactivate', 'POST', { key });
+  if (data.success) { showToast('✅ Đã khoá'); loadKeys(); }
+}
+
+async function resetIP(key) {
+  const data = await apiCall('reset-ip', 'POST', { key });
+  if (data.success) { showToast('✅ Reset IP thành công'); loadKeys(); }
+}
+
+async function extendKey(key) {
+  const days = prompt('Gia hạn thêm bao nhiêu ngày?', '30');
+  if (!days) return;
+  const data = await apiCall('extend', 'POST', { key, days: parseInt(days) });
+  if (data.success) { showToast(`✅ Gia hạn thêm ${days} ngày`); loadKeys(); }
+}
+
+function copyText(t) {
+  navigator.clipboard.writeText(t).then(() => showToast('📋 Đã copy: ' + t));
+}
+
+let toastT;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// Load tự động nếu đã có config
+if (SERVER_URL && ADMIN_SECRET) loadKeys();
+</script>
+</body>
+</html>
