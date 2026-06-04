@@ -26,10 +26,12 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { key } = req.body || {};
+  const { key, device_id } = req.body || {};
   if (!key) return res.status(400).json({ valid: false, error: 'Thieu key' });
 
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const identifier = device_id ||
+    (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+    'unknown';
 
   try {
     const { data } = await supabase('GET', 'license_keys', null,
@@ -42,18 +44,23 @@ module.exports = async function handler(req, res) {
     const now = new Date();
     const expiry = new Date(record.expires_at);
     if (now > expiry) return res.json({ valid: false, error: 'Key het han' });
-    if (record.bound_ip && record.bound_ip !== ip) {
-      return res.json({ valid: false, error: 'Key da dung boi IP khac' });
+
+    if (record.bound_device && record.bound_device !== identifier) {
+      return res.json({ valid: false, error: 'Key chi duoc dung tren 1 thiet bi. Lien he admin de doi thiet bi.' });
     }
 
-    if (!record.bound_ip) {
-      await supabase('PATCH', 'license_keys',
-        { bound_ip: ip, first_used_at: now.toISOString(), use_count: 1 },
-        `key=eq.${key.trim().toUpperCase()}`);
+    if (!record.bound_device) {
+      await supabase('PATCH', 'license_keys', {
+        bound_device: identifier,
+        bound_ip: (req.headers['x-forwarded-for'] || '').split(',')[0].trim(),
+        first_used_at: now.toISOString(),
+        use_count: 1
+      }, `key=eq.${key.trim().toUpperCase()}`);
     } else {
-      await supabase('PATCH', 'license_keys',
-        { use_count: (record.use_count || 0) + 1, last_used_at: now.toISOString() },
-        `key=eq.${key.trim().toUpperCase()}`);
+      await supabase('PATCH', 'license_keys', {
+        use_count: (record.use_count || 0) + 1,
+        last_used_at: now.toISOString()
+      }, `key=eq.${key.trim().toUpperCase()}`);
     }
 
     const daysLeft = Math.ceil((expiry - now) / 86400000);
@@ -64,6 +71,7 @@ module.exports = async function handler(req, res) {
       days_left: daysLeft,
       plan: record.plan || 'basic'
     });
+
   } catch(err) {
     return res.status(500).json({ valid: false, error: err.message });
   }
